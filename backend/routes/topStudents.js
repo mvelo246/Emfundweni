@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDatabase } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.get('/', (req, res) => {
     'SELECT * FROM top_students ORDER BY year DESC, position ASC',
     (err, rows) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
@@ -23,13 +24,19 @@ router.get('/', (req, res) => {
 // Get top students for a specific year (public)
 router.get('/year/:year', (req, res) => {
   const year = parseInt(req.params.year);
+  
+  // Validate year parameter
+  if (isNaN(year) || year < 1900 || year > 2100) {
+    return res.status(400).json({ error: 'Invalid year. Year must be between 1900 and 2100' });
+  }
+  
   const db = getDatabase();
   db.all(
     'SELECT * FROM top_students WHERE year = ? ORDER BY position ASC',
     [year],
     (err, rows) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
@@ -51,13 +58,12 @@ router.post('/', authenticateToken, (req, res) => {
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > 200) {
     return res.status(400).json({ error: 'Name must be a non-empty string (max 200 characters)' });
   }
-  if (typeof year !== 'number' || year < 1900 || year > 2100) {
+  if (typeof year !== 'number' || isNaN(year) || year < 1900 || year > 2100) {
     return res.status(400).json({ error: 'Year must be a valid number between 1900 and 2100' });
   }
-  if (position < 1 || position > 10) {
+  if (typeof position !== 'number' || isNaN(position) || position < 1 || position > 10) {
     return res.status(400).json({ error: 'Position must be between 1 and 10' });
   }
-  
 
   const db = getDatabase();
   
@@ -67,7 +73,7 @@ router.post('/', authenticateToken, (req, res) => {
     [year, position],
     (err, existing) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
@@ -81,7 +87,7 @@ router.post('/', authenticateToken, (req, res) => {
         [name.trim(), parseInt(year), parseInt(position)],
         function(err) {
           if (err) {
-            console.error('Database error:', err);
+            logger.error('Database error', err);
             return res.status(500).json({ error: 'Internal server error' });
           }
 
@@ -116,22 +122,22 @@ router.put('/:id', authenticateToken, (req, res) => {
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > 200) {
     return res.status(400).json({ error: 'Name must be a non-empty string (max 200 characters)' });
   }
-  if (typeof year !== 'number' || year < 1900 || year > 2100) {
+  if (typeof year !== 'number' || isNaN(year) || year < 1900 || year > 2100) {
     return res.status(400).json({ error: 'Year must be a valid number between 1900 and 2100' });
   }
-  if (typeof position !== 'number' || position < 1 || position > 10) {
+  if (typeof position !== 'number' || isNaN(position) || position < 1 || position > 10) {
     return res.status(400).json({ error: 'Position must be between 1 and 10' });
   }
 
   const db = getDatabase();
-  
+
   // Check if position is already taken by another student for this year
   db.get(
     'SELECT * FROM top_students WHERE year = ? AND position = ? AND id != ?',
     [year, position, id],
     (err, existing) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
@@ -145,7 +151,7 @@ router.put('/:id', authenticateToken, (req, res) => {
         [name.trim(), parseInt(year), parseInt(position), id],
         function(err) {
           if (err) {
-            console.error('Database error:', err);
+            logger.error('Database error', err);
             return res.status(500).json({ error: 'Internal server error' });
           }
 

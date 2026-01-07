@@ -1,28 +1,27 @@
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
 const path = require('path');
+const logger = require('./utils/logger');
 
-const DB_PATH = path.join(__dirname, 'school.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'school.db');
 
 // Initialize database and create tables
 function initDatabase() {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(DB_PATH, (err) => {
       if (err) {
-        console.error('Error opening database:', err);
+        logger.error('Error opening database', err);
         reject(err);
         return;
       }
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Connected to SQLite database');
-      }
+      logger.info('Connected to SQLite database', { path: DB_PATH });
     });
 
     // Initialize school info if empty
     function initializeSchoolInfo() {
       db.get('SELECT COUNT(*) as count FROM school_info', (err, row) => {
         if (err) {
-          console.error('Error checking school info:', err);
+          logger.error('Error checking school info', err);
           reject(err);
           return;
         }
@@ -53,13 +52,11 @@ function initDatabase() {
             ],
             (err) => {
               if (err) {
-                console.error('Error initializing school info:', err);
+                logger.error('Error initializing school info', err);
                 reject(err);
                 return;
               }
-              if (process.env.NODE_ENV !== 'production') {
-                console.log('School info initialized with default values');
-              }
+              logger.info('School info initialized with default values');
               resolve(db);
             }
           );
@@ -98,7 +95,7 @@ function initDatabase() {
              WHERE id = 1`,
             (err) => {
               if (err && !err.message.includes('duplicate column')) {
-                console.error('Error migrating school info:', err);
+                logger.error('Error migrating school info', err);
               }
               resolve(db);
             }
@@ -132,7 +129,7 @@ function initDatabase() {
         logo_url TEXT DEFAULT '/logo.png'
       )`, (err) => {
         if (err) {
-          console.error('Error creating school_info table:', err);
+          logger.error('Error creating school_info table', err);
           reject(err);
           return;
         }
@@ -147,7 +144,7 @@ function initDatabase() {
         UNIQUE(year, position)
       )`, (err) => {
         if (err) {
-          console.error('Error creating top_students table:', err);
+          logger.error('Error creating top_students table', err);
           reject(err);
           return;
         }
@@ -160,7 +157,7 @@ function initDatabase() {
         password_hash TEXT NOT NULL
       )`, async (err) => {
         if (err) {
-          console.error('Error creating admin_users table:', err);
+          logger.error('Error creating admin_users table', err);
           reject(err);
           return;
         }
@@ -168,7 +165,7 @@ function initDatabase() {
         // Create default admin user if none exists
         db.get('SELECT COUNT(*) as count FROM admin_users', async (err, row) => {
           if (err) {
-            console.error('Error checking admin users:', err);
+            logger.error('Error checking admin users', err);
             reject(err);
             return;
           }
@@ -181,15 +178,14 @@ function initDatabase() {
               ['admin', passwordHash],
               (err) => {
                 if (err) {
-                  console.error('Error creating default admin:', err);
+                  logger.error('Error creating default admin', err);
                   reject(err);
                   return;
                 }
-                if (process.env.NODE_ENV !== 'production') {
-                  console.log('Default admin user created: username=admin, password=admin123');
-                } else {
-                  console.warn('WARNING: Default admin user created. Please change the password immediately!');
-                }
+                logger.warn('Default admin user created', {
+                  username: 'admin',
+                  message: 'Please change the password immediately!'
+                });
                 initializeSchoolInfo();
               }
             );

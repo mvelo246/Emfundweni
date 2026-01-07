@@ -2,9 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { initDatabase } = require('./database');
+const { validateEnv } = require('./utils/envValidator');
+const logger = require('./utils/logger');
+const requestLogger = require('./middleware/requestLogger');
 const schoolInfoRoutes = require('./routes/schoolInfo');
 const topStudentsRoutes = require('./routes/topStudents');
 const authRoutes = require('./routes/auth');
+
+// Validate environment variables
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,6 +28,9 @@ app.use(cors(corsOptions));
 // Security: Body parsing with size limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging
+app.use(requestLogger);
 
 // Security: Add security headers
 app.use((req, res, next) => {
@@ -51,7 +60,7 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware (must be after routes)
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  logger.error('Unhandled error', err);
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV === 'production' 
       ? 'Internal server error' 
@@ -68,16 +77,17 @@ app.use((req, res) => {
 initDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      if (process.env.NODE_ENV === 'production') {
-        console.log(`Server is running on port ${PORT} (PRODUCTION MODE)`);
-      } else {
-        console.log(`Server is running on port ${PORT}`);
-        console.log(`API endpoints available at http://localhost:${PORT}/api`);
+      logger.info(`Server is running on port ${PORT}`, {
+        environment: process.env.NODE_ENV || 'development',
+        port: PORT
+      });
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info(`API endpoints available at http://localhost:${PORT}/api`);
       }
     });
   })
   .catch((err) => {
-    console.error('Failed to initialize database:', err);
+    logger.error('Failed to initialize database', err);
     process.exit(1);
   });
 

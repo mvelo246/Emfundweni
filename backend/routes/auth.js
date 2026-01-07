@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getDatabase } = require('../database');
 const { JWT_SECRET } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.post('/login', (req, res) => {
     [username],
     async (err, user) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error during login', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
@@ -42,7 +43,7 @@ router.post('/login', (req, res) => {
 
         res.json({ token, username: user.username });
       } catch (error) {
-        console.error('Error comparing passwords:', error);
+        logger.error('Error during authentication', error);
         res.status(500).json({ error: 'Internal server error' });
       }
     }

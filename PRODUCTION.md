@@ -4,11 +4,18 @@
 
 ### 1. Environment Variables
 
-Create a `.env` file in the `backend` directory with the following:
+Copy the `.env.example` file to `.env` in the `backend` directory:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Then edit `.env` with your production values:
 
 ```env
 # REQUIRED: Strong JWT secret (generate with: openssl rand -base64 32)
-JWT_SECRET=your-strong-random-secret-key-here
+JWT_SECRET=your-strong-random-secret-key-here-minimum-32-characters
 
 # REQUIRED: Set to production
 NODE_ENV=production
@@ -16,12 +23,14 @@ NODE_ENV=production
 # Optional: Server port (defaults to 3001)
 PORT=3001
 
-# Optional: Frontend URL for CORS (if different from default)
+# REQUIRED in production: Frontend URL for CORS
 FRONTEND_URL=https://yourdomain.com
 
 # Optional: Database path (defaults to ./school.db)
 # DB_PATH=./school.db
 ```
+
+**Important:** The application will exit if `JWT_SECRET` is not set in production mode.
 
 ### 2. Security Requirements
 
@@ -155,11 +164,28 @@ The application includes security headers:
 - `X-XSS-Protection: 1; mode=block`
 - `Strict-Transport-Security` (HTTPS only in production)
 
-### 12. Error Handling
+### 12. Error Handling & Logging
 
-- All errors are logged to console (use proper logging service in production)
-- Database errors return generic messages (no sensitive data exposed)
-- Input validation prevents SQL injection and XSS attacks
+- **Structured Logging**: Production uses JSON-structured logs for easy parsing
+- **Request Logging**: All HTTP requests are logged with method, path, status, and duration
+- **Error Logging**: Errors are logged with full stack traces (development) or structured JSON (production)
+- **Database errors**: Return generic messages (no sensitive data exposed)
+- **Input validation**: Prevents SQL injection and XSS attacks
+- **No Debug Logs**: Debug logs are automatically disabled in production
+
+### 13. Logging System
+
+The application uses a production-ready logging system:
+
+- **Development**: Human-readable logs with timestamps
+- **Production**: JSON-structured logs for log aggregation services
+- **Log Levels**: `info`, `warn`, `error`, `debug` (debug disabled in production)
+- **Request Logging**: Automatic logging of all HTTP requests
+
+Example production log format:
+```json
+{"level":"error","timestamp":"2024-01-01T12:00:00.000Z","message":"Database error","error":"..."}
+```
 
 ## Post-Deployment
 

@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "production": "NODE_ENV=production node server.js"
+    "production": "NODE_ENV=production node server.js",
+    "build": "echo 'Backend does not require build step'",
+    "prestart": "node -e \"require('./utils/envValidator').validateEnv()\" || true"
   },
   "keywords": [],
   "author": "",

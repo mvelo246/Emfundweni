@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDatabase } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ router.get('/', (req, res) => {
   const db = getDatabase();
   db.get('SELECT * FROM school_info WHERE id = 1', (err, row) => {
     if (err) {
-      console.error('Database error:', err);
+      logger.error('Database error fetching school info', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
@@ -42,18 +43,11 @@ router.put('/', authenticateToken, (req, res) => {
   } = req.body;
 
   // Debug logging for troubleshooting
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('Received update request:', {
-      has_mission: !!mission,
-      has_about: !!about,
-      has_email: !!contact_email,
-      has_phone: !!contact_phone,
-      has_address: !!contact_address,
-      mission_length: mission?.length,
-      about_length: about?.length,
-      body_keys: Object.keys(req.body)
-    });
-  }
+  logger.debug('Received school info update request', {
+    has_mission: !!mission,
+    has_about: !!about,
+    has_email: !!contact_email
+  });
 
   // Validate required fields - ensure they are provided and not empty
   // Allow empty strings for optional fields but require non-empty for required fields
@@ -106,7 +100,7 @@ router.put('/', authenticateToken, (req, res) => {
     ],
     function(err) {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error updating school info', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
@@ -134,7 +128,7 @@ router.put('/', authenticateToken, (req, res) => {
           ],
           (err) => {
             if (err) {
-              console.error('Database error:', err);
+              logger.error('Database error creating school info', err);
               return res.status(500).json({ error: 'Internal server error' });
             }
             res.json({ message: 'School information updated successfully' });

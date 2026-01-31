@@ -1,237 +1,180 @@
-# Emfudweni High School - Hostinger VPS Deployment Guide
+# Emfudweni High School - Hostinger Business Hosting Deployment
 
-## Project Structure on VPS
+## How It Works
+
+Your app deploys as a **single Node.js application** on Hostinger Business hosting:
+- The backend (Express API) handles `/api/*` requests
+- The same server serves the React frontend for all other routes
+- MySQL database is created through hPanel
+- Hostinger manages the server — no SSH, Nginx, or PM2 needed
 
 ```
-/var/www/emfudweni/
-├── frontend/          ← React build (served by Nginx)
+Your Hostinger App
+├── server.js          ← Express backend (entry point)
+├── public/            ← React build (served automatically)
 │   ├── index.html
-│   ├── static/
-│   └── ...
-└── backend/           ← Node.js API (managed by PM2)
-    ├── server.js
-    ├── database.js
-    ├── routes/
-    ├── middleware/
-    ├── ecosystem.config.js
-    ├── .env           ← you create this manually
-    └── logs/
-```
-
-**How it works:**
-- **Nginx** serves the React frontend directly from `/var/www/emfudweni/frontend/`
-- **Nginx** proxies `/api/*` requests to the Node.js backend on port 3001
-- **PM2** keeps the Node.js backend running and restarts it if it crashes
-- **MySQL** stores all data (school info, students, admin users)
-
----
-
-## Step 1: Buy & Access Hostinger VPS
-
-1. Go to [Hostinger VPS](https://www.hostinger.com/vps-hosting) and buy a plan (KVM 1 is enough)
-2. Choose **Ubuntu 22.04** as the OS
-3. Set a root password
-4. Note your VPS IP address from the Hostinger dashboard
-
-Test SSH access from your local machine:
-```bash
-ssh root@YOUR_VPS_IP
+│   └── static/
+├── routes/
+├── middleware/
+├── database.js
+├── .env
+└── package.json
 ```
 
 ---
 
-## Step 2: Setup VPS Software
+## Step 1: Claim Your Free Domain
 
-SSH into your VPS and run these commands:
+1. Go to **Hostinger hPanel** → **Domains**
+2. Claim your free domain (included with Business plan)
+3. Or connect an existing domain by updating nameservers
+
+---
+
+## Step 2: Create MySQL Database
+
+1. Go to **hPanel** → **Databases** → **MySQL Databases**
+2. Create a new database:
+   - Database name: `emfudweni_school`
+   - Database user: `emfudweni_user`
+   - Password: (choose a strong password — **save it!**)
+3. Note the **database host** — it's usually something like `mysql.hostinger.com` or shown on the database page (NOT `localhost` on shared hosting)
+
+---
+
+## Step 3: Build the Project Locally
+
+On your computer, open terminal in the project folder and run:
 
 ```bash
-# Update system
-apt update && apt upgrade -y
-
-# Install Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
-
-# Install PM2 (process manager)
-npm install -g pm2
-
-# Install Nginx
-apt install -y nginx
-
-# Install MySQL
-apt install -y mysql-server
-
-# Install Certbot for SSL
-apt install -y certbot python3-certbot-nginx
+npm run build:deploy
 ```
 
-Verify installations:
-```bash
-node --version    # Should show v20.x
-pm2 --version     # Should show 5.x
-nginx -v          # Should show nginx/1.x
-mysql --version   # Should show mysql 8.x
+This builds the React frontend and copies it into `backend/public/` so the backend can serve it.
+
+---
+
+## Step 4: Deploy via hPanel
+
+### Option A: GitHub (Recommended — Auto-redeploy)
+
+1. Push your code to GitHub
+2. Go to **hPanel** → **Website** → **Advanced** → **Node.js**
+3. Click **Create App** or **Add Application**
+4. Click **Authorize** to connect your GitHub account
+5. Select your repository and branch (`main`)
+6. Set these settings:
+   - **Root directory**: `backend`
+   - **Build command**: `npm install --production`
+   - **Start command**: `node server.js`
+   - **Node.js version**: 20.x
+7. Click **Deploy**
+
+### Option B: File Upload (Manual)
+
+1. Create a zip of the `backend/` folder (make sure `public/` is inside it from Step 3):
+   ```bash
+   cd backend
+   zip -r ../emfudweni-deploy.zip . -x "node_modules/*" ".env" "logs/*" "__tests__/*" "coverage/*"
+   ```
+2. Go to **hPanel** → **Website** → **Advanced** → **Node.js**
+3. Click **Create App** → **Upload**
+4. Upload `emfudweni-deploy.zip`
+5. Set:
+   - **Start command**: `node server.js`
+   - **Node.js version**: 20.x
+6. Click **Deploy**
+
+---
+
+## Step 5: Set Environment Variables
+
+In **hPanel** → your Node.js app → **Environment Variables** (or Settings):
+
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `PORT` | `3001` (or whatever Hostinger assigns) |
+| `HOST` | `0.0.0.0` |
+| `JWT_SECRET` | (generate: run `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` on your computer) |
+| `DATABASE_URL` | `mysql://emfudweni_user:YOUR_PASSWORD@DATABASE_HOST:3306/emfudweni_school` |
+| `FRONTEND_URL` | `https://yourdomain.co.za` |
+
+**Important:** The `DATABASE_HOST` is NOT `localhost` on shared hosting. Find it in **hPanel** → **Databases** → **MySQL Databases** (it looks like `mysqlXX.hostinger.com` or an IP address).
+
+---
+
+## Step 6: Create Admin User
+
+You'll need to run the admin setup script. In hPanel:
+
+1. Go to **hPanel** → **Advanced** → **SSH Access** (if available on Business plan)
+2. SSH in and run:
+   ```bash
+   cd ~/path-to-your-app/backend
+   node reset-admin.js
+   ```
+
+If SSH is not available, you can temporarily add this to server.js before deploying, then remove it after:
+```javascript
+// Add temporarily after database init, then REMOVE after first use
+app.get('/setup-admin', async (req, res) => {
+  const bcrypt = require('bcrypt');
+  const db = require('./database').getDatabase();
+  const hash = await bcrypt.hash('admin123', 10);
+  db.query('INSERT INTO admin_users (username, password_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE password_hash = ?',
+    ['admin', hash, hash],
+    (err) => {
+      if (err) return res.json({ error: err.message });
+      res.json({ message: 'Admin created. Username: admin, Password: admin123. CHANGE THIS NOW and remove this route!' });
+    });
+});
 ```
 
 ---
 
-## Step 3: Setup MySQL Database
+## Step 7: Verify
 
-```bash
-# Secure MySQL installation
-mysql_secure_installation
-# Answer: Yes to all prompts, set a root password
-
-# Login to MySQL
-mysql -u root -p
-
-# Run these SQL commands:
-CREATE DATABASE emfudweni_school;
-CREATE USER 'emfudweni_user'@'localhost' IDENTIFIED BY 'YOUR_STRONG_PASSWORD';
-GRANT ALL PRIVILEGES ON emfudweni_school.* TO 'emfudweni_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-Replace `YOUR_STRONG_PASSWORD` with a strong password. Save it — you'll need it for the `.env` file.
-
----
-
-## Step 4: Point Domain to VPS
-
-In your domain registrar (Hostinger, GoDaddy, etc.):
-
-| Type | Name | Value |
-|------|------|-------|
-| A | @ | YOUR_VPS_IP |
-| A | www | YOUR_VPS_IP |
-
-Wait for DNS to propagate (can be instant or up to 24 hours).
-
----
-
-## Step 5: Configure Deploy Script
-
-On your **local machine**, edit `deploy-hostinger.sh`:
-
-```bash
-VPS_HOST="154.41.252.100"         # Your VPS IP
-VPS_USER="root"                    # Your SSH user
-VPS_PORT="22"                      # SSH port
-DOMAIN="emfudweni.co.za"          # Your domain
-```
-
----
-
-## Step 6: Deploy
-
-From your **local machine** (project root):
-
-```bash
-./deploy-hostinger.sh
-```
-
-This script will:
-1. Build the React frontend locally
-2. Upload frontend build to `/var/www/emfudweni/frontend/`
-3. Upload backend code to `/var/www/emfudweni/backend/`
-4. Install Node.js dependencies on VPS
-5. Start backend with PM2
-6. Configure Nginx (first deploy only)
-
----
-
-## Step 7: Create .env File on VPS
-
-SSH into VPS and create the environment file:
-
-```bash
-ssh root@YOUR_VPS_IP
-nano /var/www/emfudweni/backend/.env
-```
-
-Paste these values:
-```
-NODE_ENV=production
-JWT_SECRET=paste-a-64-char-random-string-here
-DATABASE_URL=mysql://emfudweni_user:YOUR_STRONG_PASSWORD@localhost:3306/emfudweni_school
-FRONTEND_URL=https://yourdomain.co.za
-PORT=3001
-HOST=0.0.0.0
-```
-
-Generate a JWT secret:
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
-
-Save the file (Ctrl+O, Enter, Ctrl+X), then restart:
-```bash
-pm2 restart emfudweni-backend
-```
-
----
-
-## Step 8: Create Admin User
-
-```bash
-cd /var/www/emfudweni/backend
-node reset-admin.js
-```
-
-This creates the admin login. Note the username and password it outputs.
-
----
-
-## Step 9: Add SSL Certificate (HTTPS)
-
-```bash
-certbot --nginx -d yourdomain.co.za -d www.yourdomain.co.za
-```
-
-Follow the prompts. Certbot will automatically configure Nginx for HTTPS and set up auto-renewal.
-
----
-
-## Step 10: Verify Everything Works
-
-Test these URLs:
+Visit these URLs:
 - **Website**: `https://yourdomain.co.za`
 - **API health**: `https://yourdomain.co.za/api/health`
-- **Admin login**: `https://yourdomain.co.za` → click Admin/Login
+- **Admin login**: Navigate to admin section and log in
 
 ---
-
-## Useful Commands
-
-```bash
-# Check backend status
-pm2 status
-
-# View backend logs
-pm2 logs emfudweni-backend
-
-# Restart backend
-pm2 restart emfudweni-backend
-
-# Check Nginx status
-systemctl status nginx
-
-# Test Nginx config
-nginx -t
-
-# Reload Nginx
-systemctl reload nginx
-
-# View Nginx error logs
-tail -f /var/log/nginx/emfudweni-error.log
-```
 
 ## Re-deploying After Code Changes
 
-Just run from your local machine:
+### If using GitHub:
+Just push to `main` — Hostinger auto-redeploys.
+
 ```bash
-./deploy-hostinger.sh
+npm run build:deploy
+git add .
+git commit -m "update"
+git push
 ```
 
-The script handles everything — rebuilds frontend, uploads files, restarts backend.
+### If using file upload:
+1. Run `npm run build:deploy`
+2. Zip the backend folder again
+3. Upload through hPanel
+
+---
+
+## Troubleshooting
+
+**"Cannot connect to database"**
+- Check DATABASE_URL in environment variables
+- Make sure the database host is correct (not `localhost`)
+- Verify username/password match what you created in hPanel
+
+**"502 Bad Gateway"**
+- Check Node.js app logs in hPanel
+- Make sure PORT matches what Hostinger expects
+
+**"API works but website shows blank page"**
+- Make sure you ran `npm run build:deploy` before deploying
+- Check that `backend/public/index.html` exists
+
+**"CORS error"**
+- Update FRONTEND_URL env variable to match your actual domain

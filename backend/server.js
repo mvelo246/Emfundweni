@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { initDatabase } = require('./database');
 const { validateEnv } = require('./utils/envValidator');
 const logger = require('./utils/logger');
@@ -15,7 +16,7 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Bind to all interfaces for Hostinger VPS (Nginx proxy)
+// Bind to all interfaces for Hostinger hosting
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Security: CORS configuration
@@ -65,15 +66,22 @@ app.get('/api/health', (req, res) => {
 app.use((err, req, res, next) => {
   logger.error('Unhandled error', err);
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
+    error: process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
       : err.message
   });
 });
 
-// 404 handler (must be last)
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
+// Serve frontend in production (Hostinger deploys as single app)
+const frontendPath = path.join(__dirname, 'public');
+app.use(express.static(frontendPath));
+
+// SPA fallback: any non-API route serves index.html
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Endpoint not found' });
+  }
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Initialize database and start server

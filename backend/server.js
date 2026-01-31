@@ -15,7 +15,7 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// For Render.com and Railway.app compatibility
+// Bind to all interfaces for Hostinger VPS (Nginx proxy)
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Security: CORS configuration

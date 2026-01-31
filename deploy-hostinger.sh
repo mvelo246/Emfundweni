@@ -1,111 +1,125 @@
 #!/bin/bash
 
 ###############################################################################
-# Emfudweni High School - Hostinger VPS Deployment Script
-# This script deploys the backend to a Hostinger VPS server
+# Emfudweni High School - Hostinger VPS Full-Stack Deployment
+# Deploys BOTH frontend (React build) and backend (Node.js API)
 ###############################################################################
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-# Configuration - EDIT THESE VALUES
-VPS_HOST="your-vps-ip-or-domain"  # e.g., 123.45.67.89 or vps.yourdomain.com
-VPS_USER="root"                    # or your VPS username
-VPS_PORT="22"                      # SSH port (usually 22)
-APP_DIR="/home/$VPS_USER/emfudweni-high-school"
-BACKEND_DIR="$APP_DIR/backend"
+# ═══════════════════════════════════════════════════════
+# CONFIGURATION - EDIT THESE VALUES BEFORE FIRST DEPLOY
+# ═══════════════════════════════════════════════════════
+VPS_HOST="your-vps-ip"               # e.g., 154.41.252.100
+VPS_USER="root"                       # your SSH user
+VPS_PORT="22"                         # SSH port
+DOMAIN="yourdomain.co.za"            # your domain name
 
-echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║   Emfudweni High School - Hostinger VPS Deployment    ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
+# Paths on VPS
+FRONTEND_DIR="/var/www/emfudweni/frontend"
+BACKEND_DIR="/var/www/emfudweni/backend"
+
+echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║  Emfudweni High School - Hostinger VPS Deployment     ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if configuration is set
-if [ "$VPS_HOST" = "your-vps-ip-or-domain" ]; then
-    echo -e "${RED}ERROR: Please edit this script and set your VPS_HOST, VPS_USER${NC}"
-    echo -e "${RED}Open deploy-hostinger.sh and update the configuration section${NC}"
+# Check configuration
+if [ "$VPS_HOST" = "your-vps-ip" ]; then
+    echo -e "${RED}ERROR: Edit deploy-hostinger.sh first!${NC}"
+    echo -e "${RED}Set VPS_HOST, VPS_USER, and DOMAIN at the top of the file.${NC}"
     exit 1
 fi
 
-# Function to run commands on VPS
+# Helper function
 run_remote() {
-    ssh -p $VPS_PORT $VPS_USER@$VPS_HOST "$1"
+    ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "$1"
 }
 
-# Step 1: Test connection
-echo -e "${YELLOW}→ Testing SSH connection to VPS...${NC}"
-if run_remote "echo 'Connected successfully'"; then
-    echo -e "${GREEN}✓ SSH connection successful${NC}"
+# ─── Step 1: Test SSH connection ───
+echo -e "${YELLOW}[1/7] Testing SSH connection...${NC}"
+if run_remote "echo 'Connected'"; then
+    echo -e "${GREEN}  ✓ SSH connection OK${NC}"
 else
-    echo -e "${RED}✗ SSH connection failed. Check your VPS_HOST, VPS_USER, and SSH keys${NC}"
+    echo -e "${RED}  ✗ SSH failed. Check your VPS_HOST and SSH keys.${NC}"
     exit 1
 fi
 
-# Step 2: Create app directory
-echo -e "${YELLOW}→ Creating application directory...${NC}"
-run_remote "mkdir -p $APP_DIR"
-echo -e "${GREEN}✓ Directory created: $APP_DIR${NC}"
+# ─── Step 2: Build frontend locally ───
+echo -e "${YELLOW}[2/7] Building frontend...${NC}"
+cd "$(dirname "$0")/frontend" || exit 1
+REACT_APP_API_URL="https://$DOMAIN/api" npm run build
+if [ $? -ne 0 ]; then
+    echo -e "${RED}  ✗ Frontend build failed${NC}"
+    exit 1
+fi
+echo -e "${GREEN}  ✓ Frontend built successfully${NC}"
+cd ..
 
-# Step 3: Upload backend files
-echo -e "${YELLOW}→ Uploading backend files to VPS...${NC}"
+# ─── Step 3: Create directories on VPS ───
+echo -e "${YELLOW}[3/7] Setting up directories on VPS...${NC}"
+run_remote "mkdir -p $FRONTEND_DIR $BACKEND_DIR/logs"
+echo -e "${GREEN}  ✓ Directories ready${NC}"
+
+# ─── Step 4: Upload frontend build ───
+echo -e "${YELLOW}[4/7] Uploading frontend...${NC}"
+rsync -avz --delete -e "ssh -p $VPS_PORT" \
+    ./frontend/build/ "$VPS_USER@$VPS_HOST:$FRONTEND_DIR/"
+echo -e "${GREEN}  ✓ Frontend uploaded to $FRONTEND_DIR${NC}"
+
+# ─── Step 5: Upload backend ───
+echo -e "${YELLOW}[5/7] Uploading backend...${NC}"
 rsync -avz -e "ssh -p $VPS_PORT" \
     --exclude 'node_modules' \
     --exclude '.env' \
     --exclude 'logs' \
     --exclude '*.db' \
-    ./backend/ $VPS_USER@$VPS_HOST:$BACKEND_DIR/
-echo -e "${GREEN}✓ Backend files uploaded${NC}"
+    --exclude 'coverage' \
+    --exclude '__tests__' \
+    ./backend/ "$VPS_USER@$VPS_HOST:$BACKEND_DIR/"
+echo -e "${GREEN}  ✓ Backend uploaded to $BACKEND_DIR${NC}"
 
-# Step 4: Install dependencies
-echo -e "${YELLOW}→ Installing Node.js dependencies on VPS...${NC}"
+# ─── Step 6: Install dependencies & restart backend ───
+echo -e "${YELLOW}[6/7] Installing dependencies & starting backend...${NC}"
 run_remote "cd $BACKEND_DIR && npm install --production"
-echo -e "${GREEN}✓ Dependencies installed${NC}"
-
-# Step 5: Setup PM2
-echo -e "${YELLOW}→ Setting up PM2 process manager...${NC}"
-run_remote "cd $BACKEND_DIR && pm2 delete emfudweni-backend 2>/dev/null || true"
-run_remote "cd $BACKEND_DIR && pm2 start ecosystem.config.js"
+run_remote "cd $BACKEND_DIR && pm2 delete emfudweni-backend 2>/dev/null; pm2 start ecosystem.config.js"
 run_remote "pm2 save"
-run_remote "pm2 startup | grep 'sudo' | bash"
-echo -e "${GREEN}✓ PM2 configured and application started${NC}"
+echo -e "${GREEN}  ✓ Backend running with PM2${NC}"
 
-# Step 6: Setup logs directory
-echo -e "${YELLOW}→ Creating logs directory...${NC}"
-run_remote "mkdir -p $BACKEND_DIR/logs"
-echo -e "${GREEN}✓ Logs directory created${NC}"
+# ─── Step 7: Setup Nginx (first deploy only) ───
+echo -e "${YELLOW}[7/7] Checking Nginx...${NC}"
+NGINX_EXISTS=$(run_remote "test -f /etc/nginx/sites-available/emfudweni && echo 'yes' || echo 'no'")
+if [ "$NGINX_EXISTS" = "no" ]; then
+    echo -e "${YELLOW}  Setting up Nginx for first time...${NC}"
+    # Upload and configure nginx
+    scp -P "$VPS_PORT" ./backend/nginx.conf "$VPS_USER@$VPS_HOST:/etc/nginx/sites-available/emfudweni"
+    run_remote "sed -i 's/yourdomain.co.za/$DOMAIN/g' /etc/nginx/sites-available/emfudweni"
+    run_remote "ln -sf /etc/nginx/sites-available/emfudweni /etc/nginx/sites-enabled/"
+    run_remote "rm -f /etc/nginx/sites-enabled/default"
+    run_remote "nginx -t && systemctl reload nginx"
+    echo -e "${GREEN}  ✓ Nginx configured for $DOMAIN${NC}"
+else
+    run_remote "nginx -t && systemctl reload nginx"
+    echo -e "${GREEN}  ✓ Nginx already configured, reloaded${NC}"
+fi
 
-# Step 7: Reminder about environment variables
+# ─── Done ───
 echo ""
-echo -e "${YELLOW}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${YELLOW}║             IMPORTANT: Environment Variables           ║${NC}"
-echo -e "${YELLOW}╚════════════════════════════════════════════════════════╝${NC}"
-echo -e "${YELLOW}You need to set up environment variables on your VPS:${NC}"
+echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║            Deployment Complete!                       ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "1. SSH into your VPS:"
-echo -e "   ${GREEN}ssh -p $VPS_PORT $VPS_USER@$VPS_HOST${NC}"
+echo -e "  Website:  ${BLUE}http://$DOMAIN${NC}"
+echo -e "  API:      ${BLUE}http://$DOMAIN/api/health${NC}"
 echo ""
-echo -e "2. Create .env file:"
-echo -e "   ${GREEN}cd $BACKEND_DIR${NC}"
-echo -e "   ${GREEN}nano .env${NC}"
-echo ""
-echo -e "3. Add these variables (use values from backend/.env.example):"
-echo -e "   NODE_ENV=production"
-echo -e "   JWT_SECRET=your-secret-key"
-echo -e "   DATABASE_URL=mysql://user:password@localhost:3306/emfudweni_school"
-echo -e "   FRONTEND_URL=https://your-frontend-domain.web.app"
-echo -e "   PORT=3001"
-echo ""
-echo -e "4. Restart the application:"
-echo -e "   ${GREEN}pm2 restart emfudweni-backend${NC}"
-echo ""
-echo -e "${YELLOW}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${YELLOW}║                  Deployment Complete!                  ║${NC}"
-echo -e "${YELLOW}╚════════════════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "Application is running on: ${GREEN}http://$VPS_HOST:3001${NC}"
-echo -e "Check status: ${GREEN}pm2 status${NC}"
-echo -e "View logs: ${GREEN}pm2 logs emfudweni-backend${NC}"
+echo -e "  ${YELLOW}Remaining steps (first deploy only):${NC}"
+echo -e "  1. Create .env on VPS:  ${GREEN}ssh $VPS_USER@$VPS_HOST 'nano $BACKEND_DIR/.env'${NC}"
+echo -e "  2. Setup admin user:    ${GREEN}ssh $VPS_USER@$VPS_HOST 'cd $BACKEND_DIR && node reset-admin.js'${NC}"
+echo -e "  3. Restart backend:     ${GREEN}ssh $VPS_USER@$VPS_HOST 'pm2 restart emfudweni-backend'${NC}"
+echo -e "  4. Add SSL:             ${GREEN}ssh $VPS_USER@$VPS_HOST 'certbot --nginx -d $DOMAIN -d www.$DOMAIN'${NC}"
 echo ""

@@ -2,7 +2,7 @@ module.exports = {
   apps: [{
     name: 'emfudweni-backend',
     script: './server.js',
-    cwd: '/home/your-username/emfudweni-high-school/backend',
+    cwd: '/var/www/emfudweni/backend',
     instances: 1,
     autorestart: true,
     watch: false,

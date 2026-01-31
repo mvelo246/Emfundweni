@@ -6,9 +6,10 @@ node_modules/
 # Testing
 /coverage
 
-# Production
+# Production builds
 /build
 /dist
+frontend/build/
 
 # Database
 *.db
@@ -26,6 +27,9 @@ backend/backups/
 .env.production.local
 # Keep .env.production.example
 !.env.production.example
+
+# Backend logs
+backend/logs/
 
 # Logs
 npm-debug.log*

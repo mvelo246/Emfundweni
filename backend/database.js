@@ -1,35 +1,178 @@
-const sqlite3 = require('sqlite3').verbose();
+const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
-const path = require('path');
 const logger = require('./utils/logger');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'school.db');
+let pool = null;
 
-// Initialize database and create tables
-function initDatabase() {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(DB_PATH, (err) => {
-      if (err) {
-        logger.error('Error opening database', err);
-        reject(err);
-        return;
-      }
-      logger.info('Connected to SQLite database', { path: DB_PATH });
+// Create MySQL connection pool
+function createPool() {
+  // Support both DATABASE_URL (Railway format) and individual env vars
+  if (process.env.DATABASE_URL) {
+    // Parse Railway's MySQL URL: mysql://user:pass@host:port/database
+    pool = mysql.createPool({
+      uri: process.env.DATABASE_URL,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
     });
+  } else {
+    // Use individual environment variables as fallback
+    pool = mysql.createPool({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'emfudweni_school',
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
+    });
+  }
 
-    // Initialize school info if empty
-    function initializeSchoolInfo() {
-      db.get('SELECT COUNT(*) as count FROM school_info', (err, row) => {
+  // Test connection
+  pool.getConnection((err, connection) => {
+    if (err) {
+      logger.error('MySQL connection error', err);
+      throw err;
+    }
+    logger.info('MySQL connection pool created successfully');
+    connection.release();
+  });
+
+  return pool;
+}
+
+// Create tables with MySQL syntax
+function createTables(pool) {
+  return new Promise((resolve, reject) => {
+    // School info table
+    const schoolInfoTable = `
+      CREATE TABLE IF NOT EXISTS school_info (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        school_name VARCHAR(255) DEFAULT 'Emfundweni High School',
+        mission TEXT,
+        about TEXT,
+        contact_email VARCHAR(255) DEFAULT '',
+        contact_phone VARCHAR(50) DEFAULT '',
+        contact_address TEXT,
+        stats_students VARCHAR(50) DEFAULT '850+',
+        stats_pass_rate VARCHAR(50) DEFAULT '98.5%',
+        stats_awards VARCHAR(50) DEFAULT '25+',
+        stats_subjects VARCHAR(50) DEFAULT '15+',
+        vision TEXT,
+        values_text TEXT,
+        hero_title VARCHAR(255) DEFAULT 'Welcome to Emfundweni',
+        hero_tagline TEXT,
+        hero_button1_text VARCHAR(100) DEFAULT 'Learn More About Us',
+        hero_button2_text VARCHAR(100) DEFAULT 'Get In Touch',
+        footer_tagline VARCHAR(255) DEFAULT 'Excellence in Education',
+        logo_url VARCHAR(255) DEFAULT '/logo.png'
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `;
+
+    // Top students table
+    const topStudentsTable = `
+      CREATE TABLE IF NOT EXISTS top_students (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        year INT NOT NULL,
+        position INT NOT NULL,
+        UNIQUE KEY unique_year_position (year, position),
+        CHECK (position >= 1 AND position <= 10)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `;
+
+    // Admin users table
+    const adminUsersTable = `
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `;
+
+    // Execute table creation in sequence
+    pool.query(schoolInfoTable, (err) => {
+      if (err) {
+        logger.error('Error creating school_info table', err);
+        return reject(err);
+      }
+
+      pool.query(topStudentsTable, (err) => {
         if (err) {
-          logger.error('Error checking school info', err);
-          reject(err);
-          return;
+          logger.error('Error creating top_students table', err);
+          return reject(err);
         }
 
-        if (row.count === 0) {
-          db.run(
-            `INSERT INTO school_info (school_name, mission, about, contact_email, contact_phone, contact_address, stats_students, stats_pass_rate, stats_awards, stats_subjects, vision, values_text, hero_title, hero_tagline, hero_button1_text, hero_button2_text, footer_tagline, logo_url)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        pool.query(adminUsersTable, (err) => {
+          if (err) {
+            logger.error('Error creating admin_users table', err);
+            return reject(err);
+          }
+
+          logger.info('All tables created successfully');
+          resolve();
+        });
+      });
+    });
+  });
+}
+
+// Initialize default data
+async function initializeDefaultData(pool) {
+  return new Promise((resolve, reject) => {
+    // Check if admin user exists
+    pool.query('SELECT COUNT(*) as count FROM admin_users', async (err, results) => {
+      if (err) {
+        logger.error('Error checking admin users', err);
+        return reject(err);
+      }
+
+      const adminCount = results[0].count;
+
+      if (adminCount === 0) {
+        // Create default admin user
+        const defaultPassword = 'emfu23579&';
+        const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+        pool.query(
+          'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
+          ['admin', passwordHash],
+          (err) => {
+            if (err) {
+              logger.error('Error creating default admin', err);
+              return reject(err);
+            }
+            logger.warn('Default admin user created', {
+              username: 'admin',
+              message: 'Please change the password immediately!'
+            });
+          }
+        );
+      }
+
+      // Check if school info exists
+      pool.query('SELECT COUNT(*) as count FROM school_info', (err, results) => {
+        if (err) {
+          logger.error('Error checking school info', err);
+          return reject(err);
+        }
+
+        const schoolInfoCount = results[0].count;
+
+        if (schoolInfoCount === 0) {
+          // Insert default school info
+          pool.query(
+            `INSERT INTO school_info (
+              school_name, mission, about, contact_email, contact_phone, contact_address,
+              stats_students, stats_pass_rate, stats_awards, stats_subjects,
+              vision, values_text, hero_title, hero_tagline,
+              hero_button1_text, hero_button2_text, footer_tagline, logo_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               'Emfundweni High School',
               'To provide quality education and develop well-rounded individuals who are prepared for success in higher education and life.',
@@ -53,154 +196,59 @@ function initDatabase() {
             (err) => {
               if (err) {
                 logger.error('Error initializing school info', err);
-                reject(err);
-                return;
+                return reject(err);
               }
               logger.info('School info initialized with default values');
-              resolve(db);
+              resolve();
             }
           );
         } else {
-          // Migrate existing data - add new columns if they don't exist
-          db.run(`ALTER TABLE school_info ADD COLUMN school_name TEXT DEFAULT 'Emfundweni High School'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN stats_students TEXT DEFAULT '850+'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN stats_pass_rate TEXT DEFAULT '98.5%'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN stats_awards TEXT DEFAULT '25+'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN stats_subjects TEXT DEFAULT '15+'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN vision TEXT DEFAULT ''`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN values_text TEXT DEFAULT ''`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN hero_title TEXT DEFAULT 'Welcome to Emfundweni'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN hero_tagline TEXT DEFAULT 'Excellence in Education • Nurturing Future Leaders • Building Tomorrow''s Success'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN hero_button1_text TEXT DEFAULT 'Learn More About Us'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN hero_button2_text TEXT DEFAULT 'Get In Touch'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN footer_tagline TEXT DEFAULT 'Excellence in Education'`, () => {});
-          db.run(`ALTER TABLE school_info ADD COLUMN logo_url TEXT DEFAULT '/logo.png'`, () => {});
-          
-          // Update existing row with default values if new fields are empty
-          db.run(
-            `UPDATE school_info 
-             SET school_name = COALESCE(school_name, 'Emfundweni High School'),
-                 stats_students = COALESCE(stats_students, '850+'),
-                 stats_pass_rate = COALESCE(stats_pass_rate, '98.5%'),
-                 stats_awards = COALESCE(stats_awards, '25+'),
-                 stats_subjects = COALESCE(stats_subjects, '15+'),
-                 vision = COALESCE(vision, 'To be a leading institution of academic excellence that produces well-rounded, responsible citizens who are equipped with the knowledge, skills, and values to succeed in an ever-changing world and contribute positively to society.'),
-                 values_text = COALESCE(values_text, 'We pursue excellence, uphold integrity, embrace innovation, celebrate inclusivity, take responsibility, and build strong partnerships with families and the community.'),
-                 hero_title = COALESCE(hero_title, 'Welcome to Emfundweni'),
-                 hero_tagline = COALESCE(hero_tagline, 'Excellence in Education • Nurturing Future Leaders • Building Tomorrow''s Success'),
-                 hero_button1_text = COALESCE(hero_button1_text, 'Learn More About Us'),
-                 hero_button2_text = COALESCE(hero_button2_text, 'Get In Touch'),
-                 footer_tagline = COALESCE(footer_tagline, 'Excellence in Education'),
-                 logo_url = COALESCE(logo_url, '/logo.png')
-             WHERE id = 1`,
-            (err) => {
-              if (err && !err.message.includes('duplicate column')) {
-                logger.error('Error migrating school info', err);
-              }
-              resolve(db);
-            }
-          );
+          resolve();
         }
-      });
-    }
-
-    // Create tables
-    db.serialize(() => {
-      // School info table
-      db.run(`CREATE TABLE IF NOT EXISTS school_info (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        school_name TEXT DEFAULT 'Emfundweni High School',
-        mission TEXT DEFAULT '',
-        about TEXT DEFAULT '',
-        contact_email TEXT DEFAULT '',
-        contact_phone TEXT DEFAULT '',
-        contact_address TEXT DEFAULT '',
-        stats_students TEXT DEFAULT '850+',
-        stats_pass_rate TEXT DEFAULT '98.5%',
-        stats_awards TEXT DEFAULT '25+',
-        stats_subjects TEXT DEFAULT '15+',
-        vision TEXT DEFAULT '',
-        values_text TEXT DEFAULT '',
-        hero_title TEXT DEFAULT 'Welcome to Emfundweni',
-        hero_tagline TEXT DEFAULT 'Excellence in Education • Nurturing Future Leaders • Building Tomorrow''s Success',
-        hero_button1_text TEXT DEFAULT 'Learn More About Us',
-        hero_button2_text TEXT DEFAULT 'Get In Touch',
-        footer_tagline TEXT DEFAULT 'Excellence in Education',
-        logo_url TEXT DEFAULT '/logo.png'
-      )`, (err) => {
-        if (err) {
-          logger.error('Error creating school_info table', err);
-          reject(err);
-          return;
-        }
-      });
-
-      // Top students table
-      db.run(`CREATE TABLE IF NOT EXISTS top_students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        year INTEGER NOT NULL,
-        position INTEGER NOT NULL CHECK(position >= 1 AND position <= 10),
-        UNIQUE(year, position)
-      )`, (err) => {
-        if (err) {
-          logger.error('Error creating top_students table', err);
-          reject(err);
-          return;
-        }
-      });
-
-      // Admin users table
-      db.run(`CREATE TABLE IF NOT EXISTS admin_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL
-      )`, async (err) => {
-        if (err) {
-          logger.error('Error creating admin_users table', err);
-          reject(err);
-          return;
-        }
-
-        // Create default admin user if none exists
-        db.get('SELECT COUNT(*) as count FROM admin_users', async (err, row) => {
-          if (err) {
-            logger.error('Error checking admin users', err);
-            reject(err);
-            return;
-          }
-
-          if (row.count === 0) {
-            const defaultPassword = 'admin123';
-            const passwordHash = await bcrypt.hash(defaultPassword, 10);
-            db.run(
-              'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
-              ['admin', passwordHash],
-              (err) => {
-                if (err) {
-                  logger.error('Error creating default admin', err);
-                  reject(err);
-                  return;
-                }
-                logger.warn('Default admin user created', {
-                  username: 'admin',
-                  message: 'Please change the password immediately!'
-                });
-                initializeSchoolInfo();
-              }
-            );
-          } else {
-            initializeSchoolInfo();
-          }
-        });
       });
     });
   });
 }
 
-// Get database instance
-function getDatabase() {
-  return new sqlite3.Database(DB_PATH);
+// Initialize database and create tables
+async function initDatabase() {
+  try {
+    // Create connection pool
+    pool = createPool();
+
+    // Create tables
+    await createTables(pool);
+
+    // Initialize default data
+    await initializeDefaultData(pool);
+
+    logger.info('Database initialization complete');
+    return pool;
+  } catch (error) {
+    logger.error('Database initialization failed', error);
+    throw error;
+  }
 }
 
-module.exports = { initDatabase, getDatabase };
+// Get database pool
+function getDatabase() {
+  if (!pool) {
+    throw new Error('Database not initialized. Call initDatabase() first.');
+  }
+  return pool;
+}
+
+// Graceful shutdown
+function closeDatabase() {
+  if (pool) {
+    pool.end((err) => {
+      if (err) {
+        logger.error('Error closing database pool', err);
+      } else {
+        logger.info('Database pool closed');
+      }
+    });
+  }
+}
+
+module.exports = { initDatabase, getDatabase, closeDatabase };

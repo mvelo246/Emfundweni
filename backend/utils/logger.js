@@ -3,8 +3,16 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const logger = {
   info: (message, ...args) => {
-    if (!isProduction) {
-      console.log(`[INFO] ${new Date().toISOString()} - ${message}`, ...args);
+    const timestamp = new Date().toISOString();
+    if (isProduction) {
+      console.log(JSON.stringify({
+        level: 'info',
+        timestamp,
+        message,
+        ...args
+      }));
+    } else {
+      console.log(`[INFO] ${timestamp} - ${message}`, ...args);
     }
   },
   

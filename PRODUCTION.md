@@ -35,7 +35,7 @@ FRONTEND_URL=https://yourdomain.com
 ### 2. Security Requirements
 
 - ✅ **JWT_SECRET**: Must be set in production (application will exit if not set)
-- ✅ **Change Default Admin Password**: Login and change the default `admin`/`admin123` password immediately
+- ✅ **Change Default Admin Password**: Login and change the default `admin`/`emfu23579&` password immediately
 - ✅ **HTTPS**: Use HTTPS in production (configure reverse proxy with SSL)
 - ✅ **CORS**: Update `FRONTEND_URL` in `.env` to match your frontend domain
 - ✅ **Database Backup**: Regularly backup `backend/school.db` file

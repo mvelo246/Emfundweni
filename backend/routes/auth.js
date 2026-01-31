@@ -16,15 +16,16 @@ router.post('/login', (req, res) => {
   }
 
   const db = getDatabase();
-  db.get(
+  db.query(
     'SELECT * FROM admin_users WHERE username = ?',
     [username],
-    async (err, user) => {
+    async (err, results) => {
       if (err) {
         logger.error('Database error during login', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
+      const user = results[0];
       if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }

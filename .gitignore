@@ -24,6 +24,8 @@ backend/backups/
 .env.development.local
 .env.test.local
 .env.production.local
+# Keep .env.production.example
+!.env.production.example
 
 # Logs
 npm-debug.log*
@@ -41,7 +43,4 @@ lerna-debug.log*
 # OS
 .DS_Store
 Thumbs.db
-
-# Scripts (keep stop-ports.sh)
-# stop-ports.sh
 

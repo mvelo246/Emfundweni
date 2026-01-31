@@ -29,7 +29,7 @@ async function resetAdmin() {
           return;
         }
 
-        const password = 'admin123';
+        const password = 'emfu23579&';
         bcrypt.hash(password, 10, (err, hash) => {
           if (err) {
             console.error('Error hashing password:', err);
@@ -57,7 +57,7 @@ async function resetAdmin() {
                 }
                 console.log('✅ Admin user created successfully!');
                 console.log('Username: admin');
-                console.log('Password: admin123');
+                console.log('Password: emfu23579&');
                 db.close();
                 resolve();
               }

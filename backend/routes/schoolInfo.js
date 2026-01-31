@@ -8,12 +8,13 @@ const router = express.Router();
 // Get school information (public)
 router.get('/', (req, res) => {
   const db = getDatabase();
-  db.get('SELECT * FROM school_info WHERE id = 1', (err, row) => {
+  db.query('SELECT * FROM school_info WHERE id = 1', (err, results) => {
     if (err) {
       logger.error('Database error fetching school info', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
+    const row = results[0];
     if (!row) {
       return res.status(404).json({ error: 'School information not found' });
     }
@@ -73,8 +74,8 @@ router.put('/', authenticateToken, (req, res) => {
   }
 
   const db = getDatabase();
-  db.run(
-    `UPDATE school_info 
+  db.query(
+    `UPDATE school_info
      SET school_name = ?, mission = ?, about = ?, contact_email = ?, contact_phone = ?, contact_address = ?,
          stats_students = ?, stats_pass_rate = ?, stats_awards = ?, stats_subjects = ?,
          vision = ?, values_text = ?,
@@ -83,10 +84,10 @@ router.put('/', authenticateToken, (req, res) => {
      WHERE id = 1`,
     [
       school_name !== undefined && school_name !== null ? school_name : 'Emfundweni High School',
-      mission.trim(), 
-      about.trim(), 
-      contact_email.trim(), 
-      contact_phone.trim(), 
+      mission.trim(),
+      about.trim(),
+      contact_email.trim(),
+      contact_phone.trim(),
       contact_address.trim(),
       stats_students !== undefined && stats_students !== null ? stats_students : '850+',
       stats_pass_rate !== undefined && stats_pass_rate !== null ? stats_pass_rate : '98.5%',
@@ -98,23 +99,23 @@ router.put('/', authenticateToken, (req, res) => {
       hero_tagline !== undefined && hero_tagline !== null ? hero_tagline : 'Excellence in Education • Nurturing Future Leaders • Building Tomorrow\'s Success',
       footer_tagline !== undefined && footer_tagline !== null ? footer_tagline : 'Excellence in Education'
     ],
-    function(err) {
+    (err, result) => {
       if (err) {
         logger.error('Database error updating school info', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      if (this.changes === 0) {
+      if (result.affectedRows === 0) {
         // If no row was updated, insert a new one
-        db.run(
+        db.query(
           `INSERT INTO school_info (school_name, mission, about, contact_email, contact_phone, contact_address, stats_students, stats_pass_rate, stats_awards, stats_subjects, vision, values_text, hero_title, hero_tagline, footer_tagline)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             school_name !== undefined && school_name !== null ? school_name : 'Emfundweni High School',
-            mission.trim(), 
-            about.trim(), 
-            contact_email.trim(), 
-            contact_phone.trim(), 
+            mission.trim(),
+            about.trim(),
+            contact_email.trim(),
+            contact_phone.trim(),
             contact_address.trim(),
             stats_students !== undefined && stats_students !== null ? stats_students : '850+',
             stats_pass_rate !== undefined && stats_pass_rate !== null ? stats_pass_rate : '98.5%',

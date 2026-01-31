@@ -127,7 +127,7 @@ const ManageStudents: React.FC = () => {
             setShowForm(true);
           }}
           className="px-6 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg"
-          style={{ backgroundColor: '#00CED1' }}
+          style={{ backgroundColor: '#4682B4' }}
         >
           Add New Student
         </button>
@@ -146,7 +146,7 @@ const ManageStudents: React.FC = () => {
       )}
 
       {showForm && (
-        <div className="mb-8 p-6 rounded-lg" style={{ backgroundColor: '#E0F7FA' }}>
+        <div className="mb-8 p-6 rounded-lg" style={{ backgroundColor: '#F0F8FF' }}>
           <h3 className="text-xl font-semibold mb-4" style={{ color: '#4682B4' }}>
             {editingId ? 'Edit Student' : 'Add New Student'}
           </h3>
@@ -209,7 +209,7 @@ const ManageStudents: React.FC = () => {
               <button
                 type="submit"
                 className="px-6 py-2 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg"
-                style={{ backgroundColor: '#4682B4' }}
+                style={{ backgroundColor: '#87CEEB' }}
               >
                 {editingId ? 'Update' : 'Add'} Student
               </button>
@@ -244,11 +244,11 @@ const ManageStudents: React.FC = () => {
                     <div
                       key={student.id}
                       className="p-4 rounded-lg border-2"
-                      style={{ borderColor: '#B0E0E6', backgroundColor: '#E0F7FA' }}
+                      style={{ borderColor: '#B0E0E6', backgroundColor: '#F0F8FF' }}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <div className="text-2xl font-bold" style={{ color: '#00CED1' }}>
+                          <div className="text-2xl font-bold" style={{ color: '#5F9EA0' }}>
                             #{student.position}
                           </div>
                           <div className="text-lg font-semibold" style={{ color: '#4682B4' }}>
@@ -259,7 +259,7 @@ const ManageStudents: React.FC = () => {
                           <button
                             onClick={() => handleEdit(student)}
                             className="px-3 py-1 rounded text-sm font-semibold text-white transition-all duration-300"
-                            style={{ backgroundColor: '#4682B4' }}
+                            style={{ backgroundColor: '#87CEEB' }}
                           >
                             Edit
                           </button>

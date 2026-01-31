@@ -59,7 +59,7 @@ The frontend will run on `http://localhost:3000`
 ## Default Admin Credentials
 
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: `emfu23579&`
 
 **Important**: Change the default password after first login in production!
 

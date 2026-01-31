@@ -92,8 +92,8 @@ const EditSchoolInfo: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold mb-6" style={{ 
-        background: 'linear-gradient(135deg, #1565C0, #0277BD)',
+      <h2 className="text-3xl font-bold mb-6" style={{
+        background: 'linear-gradient(135deg, #87CEEB, #4682B4)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent'
       }}>
@@ -103,9 +103,9 @@ const EditSchoolInfo: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
-          <h3 className="text-xl font-bold mb-4" style={{ color: '#1565C0' }}>Basic Information</h3>
+          <h3 className="text-xl font-bold mb-4" style={{ color: '#4682B4' }}>Basic Information</h3>
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
               School Name
             </label>
             <input
@@ -115,17 +115,17 @@ const EditSchoolInfo: React.FC = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-              style={{ borderColor: '#64B5F6' }}
+              style={{ borderColor: '#B0E0E6' }}
             />
           </div>
         </div>
 
         {/* Hero Section */}
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
-          <h3 className="text-xl font-bold mb-4" style={{ color: '#1565C0' }}>Hero Section</h3>
+          <h3 className="text-xl font-bold mb-4" style={{ color: '#4682B4' }}>Hero Section</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Hero Title
               </label>
               <input
@@ -135,11 +135,11 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Hero Tagline
               </label>
               <input
@@ -149,7 +149,7 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
           </div>
@@ -157,10 +157,10 @@ const EditSchoolInfo: React.FC = () => {
 
         {/* Statistics */}
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
-          <h3 className="text-xl font-bold mb-4" style={{ color: '#1565C0' }}>Statistics</h3>
+          <h3 className="text-xl font-bold mb-4" style={{ color: '#4682B4' }}>Statistics</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Students Count
               </label>
               <input
@@ -170,11 +170,11 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 placeholder="850+"
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Pass Rate
               </label>
               <input
@@ -184,11 +184,11 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 placeholder="98.5%"
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Awards Won
               </label>
               <input
@@ -198,11 +198,11 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 placeholder="25+"
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Subjects
               </label>
               <input
@@ -212,7 +212,7 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 placeholder="15+"
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
           </div>
@@ -220,11 +220,11 @@ const EditSchoolInfo: React.FC = () => {
 
         {/* Mission, Vision, Values & About */}
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
-          <h3 className="text-xl font-bold mb-4" style={{ color: '#1565C0' }}>School Content</h3>
+          <h3 className="text-xl font-bold mb-4" style={{ color: '#4682B4' }}>School Content</h3>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Mission Statement <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -234,13 +234,13 @@ const EditSchoolInfo: React.FC = () => {
                 required
                 rows={4}
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
                 placeholder="Enter the school's mission statement..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Our Vision
               </label>
               <textarea
@@ -249,13 +249,13 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 rows={4}
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
                 placeholder="Enter the school's vision..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Our Values
               </label>
               <textarea
@@ -264,13 +264,13 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 rows={4}
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
                 placeholder="Enter the school's values..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 About Our School <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -280,7 +280,7 @@ const EditSchoolInfo: React.FC = () => {
                 required
                 rows={6}
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
                 placeholder="Enter information about the school..."
               />
             </div>
@@ -289,9 +289,9 @@ const EditSchoolInfo: React.FC = () => {
 
         {/* Footer */}
         <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-xl font-bold mb-4" style={{ color: '#1565C0' }}>Footer</h3>
+          <h3 className="text-xl font-bold mb-4" style={{ color: '#4682B4' }}>Footer</h3>
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
               Footer Tagline
             </label>
             <input
@@ -300,17 +300,17 @@ const EditSchoolInfo: React.FC = () => {
               value={formData.footer_tagline}
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-              style={{ borderColor: '#64B5F6' }}
+              style={{ borderColor: '#B0E0E6' }}
             />
           </div>
         </div>
 
         {/* Contact Information */}
         <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-xl font-bold mb-4" style={{ color: '#1565C0' }}>Contact Information</h3>
+          <h3 className="text-xl font-bold mb-4" style={{ color: '#4682B4' }}>Contact Information</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Contact Email
               </label>
               <input
@@ -320,12 +320,12 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Contact Phone
               </label>
               <input
@@ -335,12 +335,12 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1565C0' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#4682B4' }}>
                 Contact Address
               </label>
               <input
@@ -350,7 +350,7 @@ const EditSchoolInfo: React.FC = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
-                style={{ borderColor: '#64B5F6' }}
+                style={{ borderColor: '#B0E0E6' }}
               />
             </div>
           </div>
@@ -372,7 +372,7 @@ const EditSchoolInfo: React.FC = () => {
           type="submit"
           disabled={saving}
           className="px-6 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg disabled:opacity-50"
-          style={{ background: 'linear-gradient(135deg, #1976D2, #1565C0, #0D47A1)' }}
+          style={{ background: 'linear-gradient(135deg, #87CEEB, #5F9EA0, #4682B4)' }}
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>

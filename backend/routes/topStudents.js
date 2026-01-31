@@ -8,15 +8,15 @@ const router = express.Router();
 // Get all top students (public)
 router.get('/', (req, res) => {
   const db = getDatabase();
-  db.all(
+  db.query(
     'SELECT * FROM top_students ORDER BY year DESC, position ASC',
-    (err, rows) => {
+    (err, results) => {
       if (err) {
         logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      res.json(rows);
+      res.json(results);
     }
   );
 });
@@ -31,16 +31,16 @@ router.get('/year/:year', (req, res) => {
   }
   
   const db = getDatabase();
-  db.all(
+  db.query(
     'SELECT * FROM top_students WHERE year = ? ORDER BY position ASC',
     [year],
-    (err, rows) => {
+    (err, results) => {
       if (err) {
         logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      res.json(rows);
+      res.json(results);
     }
   );
 });
@@ -66,33 +66,34 @@ router.post('/', authenticateToken, (req, res) => {
   }
 
   const db = getDatabase();
-  
+
   // Check if position is already taken for this year
-  db.get(
+  db.query(
     'SELECT * FROM top_students WHERE year = ? AND position = ?',
     [year, position],
-    (err, existing) => {
+    (err, results) => {
       if (err) {
         logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
+      const existing = results[0];
       if (existing) {
         return res.status(400).json({ error: 'Position already taken for this year' });
       }
 
       // Insert new student (sanitize name)
-      db.run(
+      db.query(
         'INSERT INTO top_students (name, year, position) VALUES (?, ?, ?)',
         [name.trim(), parseInt(year), parseInt(position)],
-        function(err) {
+        (err, result) => {
           if (err) {
             logger.error('Database error', err);
             return res.status(500).json({ error: 'Internal server error' });
           }
 
           res.status(201).json({
-            id: this.lastID,
+            id: result.insertId,
             name,
             year,
             position,
@@ -132,30 +133,31 @@ router.put('/:id', authenticateToken, (req, res) => {
   const db = getDatabase();
 
   // Check if position is already taken by another student for this year
-  db.get(
+  db.query(
     'SELECT * FROM top_students WHERE year = ? AND position = ? AND id != ?',
     [year, position, id],
-    (err, existing) => {
+    (err, results) => {
       if (err) {
         logger.error('Database error', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
+      const existing = results[0];
       if (existing) {
         return res.status(400).json({ error: 'Position already taken for this year' });
       }
 
       // Update student (sanitize inputs)
-      db.run(
+      db.query(
         'UPDATE top_students SET name = ?, year = ?, position = ? WHERE id = ?',
         [name.trim(), parseInt(year), parseInt(position), id],
-        function(err) {
+        (err, result) => {
           if (err) {
             logger.error('Database error', err);
             return res.status(500).json({ error: 'Internal server error' });
           }
 
-          if (this.changes === 0) {
+          if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Student not found' });
           }
 
@@ -174,13 +176,13 @@ router.delete('/:id', authenticateToken, (req, res) => {
   }
   const db = getDatabase();
 
-  db.run('DELETE FROM top_students WHERE id = ?', [id], function(err) {
+  db.query('DELETE FROM top_students WHERE id = ?', [id], (err, result) => {
     if (err) {
-      console.error('Database error:', err);
+      logger.error('Database error', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    if (this.changes === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
 

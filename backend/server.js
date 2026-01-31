@@ -15,6 +15,9 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// For Render.com and Railway.app compatibility
+const HOST = process.env.HOST || '0.0.0.0';
+
 // Security: CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
@@ -76,7 +79,7 @@ app.use((req, res) => {
 // Initialize database and start server
 initDatabase()
   .then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, HOST, () => {
       logger.info(`Server is running on port ${PORT}`, {
         environment: process.env.NODE_ENV || 'development',
         port: PORT
@@ -90,6 +93,21 @@ initDatabase()
     logger.error('Failed to initialize database', err);
     process.exit(1);
   });
+
+// Graceful shutdown handlers
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, closing server gracefully');
+  const { closeDatabase } = require('./database');
+  closeDatabase();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, closing server gracefully');
+  const { closeDatabase } = require('./database');
+  closeDatabase();
+  process.exit(0);
+});
 
 module.exports = app;
 

@@ -11,6 +11,9 @@ function validateEnv() {
     if (!process.env.JWT_SECRET) {
       required.push('JWT_SECRET');
     }
+    if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
+      required.push('DATABASE_URL or DB_HOST (for MySQL connection)');
+    }
     if (!process.env.FRONTEND_URL) {
       warnings.push('FRONTEND_URL (recommended for CORS)');
     }

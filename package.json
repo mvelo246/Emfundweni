@@ -18,9 +18,12 @@
     "test:watch": "concurrently \"npm run test:backend -- --watch\" \"npm run test:frontend\"",
     "test:coverage": "npm run test:backend -- --coverage && npm run test:frontend -- --coverage",
     "stop": "./stop-ports.sh",
-    "production": "NODE_ENV=production npm run start"
+    "production": "NODE_ENV=production npm run start",
+    "deploy:frontend": "cd frontend && npm run build && cd .. && npx firebase deploy --only hosting",
+    "firebase": "npx firebase"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "firebase-tools": "^15.1.0"
   }
 }

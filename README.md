@@ -56,11 +56,6 @@ npm start
 
 The frontend will run on `http://localhost:3000`
 
-## Default Admin Credentials
-
-- **Username**: `admin`
-- **Password**: `emfu23579&`
-
 **Important**: Change the default password after first login in production!
 
 ## API Endpoints
